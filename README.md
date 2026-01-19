@@ -34,6 +34,9 @@
     *   `/create_survey` - Yangi so'rovnoma yaratish.
     *   Rasm yuklash, tavsif yozish va nomzodlarni qo'shish imkoniyati.
 
+## Deployment (Docker)
+Loyiha `Dockerfile` va `Procfile` ni o'z ichiga oladi, shuning uchun Docker qo'llab-quvvatlaydigan har qanday platformada (Railway, Heroku, Render) oson ishga tushadi.
+
 ## Ma'lumotlar bazasi
 *   Barcha ma'lumotlar `bot_database.db` faylida saqlanadi (SQLite).
 *   Dastlabki "Samarqand" so'rovnomasi avtomatik yaratilgan.
