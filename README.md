@@ -37,3 +37,59 @@
 
 ## Admin ID
 Hozirgi Admin ID: `1284800175`. O'zgartirish uchun `config.py` faylini tahrirlang.
+
+## Docker'da Ishga tushirish
+
+### Talablar:
+- Docker o'rnatilgan bo'lishi kerak
+- Docker Compose o'rnatilgan bo'lishi kerak
+
+### Qadamlar:
+
+1. **Environment faylini tayyorlash:**
+   `.env.example` faylini `.env` sifatida nusxala va majburiy qiymatlarni kiriting:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Docker kontejnerini ishga tushirish:**
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **Kontejnerning holatini tekshirish:**
+   ```bash
+   docker-compose ps
+   ```
+
+4. **Jurnallarni ko'rish:**
+   ```bash
+   docker-compose logs -f bot
+   ```
+
+5. **Kontejnerga kirish (agar kerak bo'lsa):**
+   ```bash
+   docker-compose exec bot bash
+   ```
+
+6. **Kontejnerini to'xtatish:**
+   ```bash
+   docker-compose down
+   ```
+
+### Docker Qo'llanmasi:
+
+- **Kontejnerini qayta ishga tushirish:**
+  ```bash
+  docker-compose restart bot
+  ```
+
+- **Tahrirlash uchun qayta qurilish:**
+  ```bash
+  docker-compose up --build
+  ```
+
+- **Volume'larni tozalash:**
+  ```bash
+  docker-compose down -v
+  ```

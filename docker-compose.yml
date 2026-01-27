@@ -2,9 +2,22 @@ version: '3.8'
 
 services:
   bot:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ovozyigish-bot
+    image: ovozyigish-bot:latest
     volumes:
-      - .:/app
+      - ./bot_database.db:/app/bot_database.db
+      - ./bot.log:/app/bot.log
     env_file:
       - .env
-    restart: always
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - bot-network
+
+networks:
+  bot-network:
+    driver: bridge
