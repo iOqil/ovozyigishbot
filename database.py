@@ -2,19 +2,15 @@ import aiosqlite
 import logging
 from config import DB_NAME
 
-from contextlib import asynccontextmanager
-
 logger = logging.getLogger(__name__)
 
-@asynccontextmanager
 async def get_db():
-    async with aiosqlite.connect(DB_NAME) as db:
-        await db.execute("PRAGMA journal_mode=WAL")
-        db.row_factory = aiosqlite.Row
-        yield db
+    conn = await aiosqlite.connect(DB_NAME)
+    conn.row_factory = aiosqlite.Row
+    return conn
 
 async def create_tables():
-    async with get_db() as db:
+    async with await get_db() as db:
         await db.execute("""
             CREATE TABLE IF NOT EXISTS surveys (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,12 +81,12 @@ async def create_tables():
 # --- User Queries ---
 
 async def get_user_by_id(user_id: int):
-    async with get_db() as db:
+    async with await get_db() as db:
         async with db.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)) as cursor:
             return await cursor.fetchone()
 
 async def add_or_update_user(user_id: int, phone: str, username: str, full_name: str):
-    async with get_db() as db:
+    async with await get_db() as db:
         await db.execute(
             "INSERT OR REPLACE INTO users (user_id, phone_number, username, full_name) VALUES (?, ?, ?, ?)",
             (user_id, phone, username, full_name)
@@ -98,12 +94,12 @@ async def add_or_update_user(user_id: int, phone: str, username: str, full_name:
         await db.commit()
 
 async def get_active_surveys():
-    async with get_db() as db:
+    async with await get_db() as db:
         async with db.execute("SELECT id, title, is_closed FROM surveys WHERE is_active = 1") as cursor:
             return await cursor.fetchall()
 
 async def get_survey_details(survey_id: int):
-    async with get_db() as db:
+    async with await get_db() as db:
         async with db.execute(
             "SELECT title, description, image_file_id, is_closed FROM surveys WHERE id = ?", 
             (survey_id,)
@@ -111,7 +107,7 @@ async def get_survey_details(survey_id: int):
             return await cursor.fetchone()
 
 async def get_survey_candidates(survey_id: int):
-    async with get_db() as db:
+    async with await get_db() as db:
         async with db.execute(
             "SELECT id, full_name, votes_count FROM candidates WHERE survey_id = ? ORDER BY votes_count DESC", 
             (survey_id,)
@@ -119,7 +115,7 @@ async def get_survey_candidates(survey_id: int):
             return await cursor.fetchall()
 
 async def has_user_voted(user_id: int, survey_id: int):
-    async with get_db() as db:
+    async with await get_db() as db:
         async with db.execute(
             "SELECT 1 FROM votes WHERE user_id = ? AND survey_id = ?", 
             (user_id, survey_id)
@@ -127,7 +123,7 @@ async def has_user_voted(user_id: int, survey_id: int):
             return await cursor.fetchone() is not None
 
 async def register_vote(user_id: int, survey_id: int, candidate_id: int):
-    async with get_db() as db:
+    async with await get_db() as db:
         try:
             await db.execute(
                 "INSERT INTO votes (user_id, survey_id, candidate_id) VALUES (?, ?, ?)", 
@@ -145,7 +141,7 @@ async def register_vote(user_id: int, survey_id: int, candidate_id: int):
             return False
 
 async def get_linked_channels(survey_id: int):
-    async with get_db() as db:
+    async with await get_db() as db:
         async with db.execute("""
             SELECT c.channel_id, c.name, c.url 
             FROM channels c
@@ -157,17 +153,17 @@ async def get_linked_channels(survey_id: int):
 # --- Admin Queries ---
 
 async def delete_survey(survey_id: int):
-    async with get_db() as db:
+    async with await get_db() as db:
         await db.execute("UPDATE surveys SET is_active = 0 WHERE id = ?", (survey_id,))
         await db.commit()
 
 async def get_all_channels():
-    async with get_db() as db:
+    async with await get_db() as db:
         async with db.execute("SELECT id, name, url, channel_id FROM channels") as cursor:
             return await cursor.fetchall()
 
 async def add_channel(channel_id: str, name: str, url: str):
-    async with get_db() as db:
+    async with await get_db() as db:
         await db.execute(
             "INSERT INTO channels (channel_id, name, url) VALUES (?, ?, ?)", 
             (channel_id, name, url)
@@ -175,22 +171,22 @@ async def add_channel(channel_id: str, name: str, url: str):
         await db.commit()
 
 async def channel_exists(channel_id: str):
-    async with get_db() as db:
+    async with await get_db() as db:
         async with db.execute("SELECT 1 FROM channels WHERE channel_id = ?", (str(channel_id),)) as cursor:
             return await cursor.fetchone() is not None
 
 async def delete_channel(c_id: int):
-    async with get_db() as db:
+    async with await get_db() as db:
         await db.execute("DELETE FROM channels WHERE id = ?", (c_id,))
         await db.commit()
 
 async def close_survey(survey_id: int):
-    async with get_db() as db:
+    async with await get_db() as db:
         await db.execute("UPDATE surveys SET is_closed = 1 WHERE id = ?", (survey_id,))
         await db.commit()
 
 async def create_survey(title, description, image_file_id, deadline="2026-12-31"):
-    async with get_db() as db:
+    async with await get_db() as db:
         cursor = await db.execute(
             "INSERT INTO surveys (title, description, image_file_id, is_active, deadline) VALUES (?, ?, ?, 1, ?)",
             (title, description, image_file_id, deadline)
@@ -200,12 +196,12 @@ async def create_survey(title, description, image_file_id, deadline="2026-12-31"
         return survey_id
 
 async def add_candidate(survey_id: int, full_name: str):
-    async with get_db() as db:
+    async with await get_db() as db:
         await db.execute("INSERT INTO candidates (survey_id, full_name) VALUES (?, ?)", (survey_id, full_name))
         await db.commit()
 
 async def toggle_survey_channel(survey_id: int, channel_id: int):
-    async with get_db() as db:
+    async with await get_db() as db:
         async with db.execute(
             "SELECT 1 FROM survey_channels WHERE survey_id = ? AND channel_id = ?", 
             (survey_id, channel_id)
@@ -228,7 +224,7 @@ async def toggle_survey_channel(survey_id: int, channel_id: int):
         return action
 
 async def get_survey_linked_channel_ids(survey_id: int):
-    async with get_db() as db:
+    async with await get_db() as db:
         async with db.execute(
             "SELECT channel_id FROM survey_channels WHERE survey_id = ?", 
             (survey_id,)
@@ -237,7 +233,7 @@ async def get_survey_linked_channel_ids(survey_id: int):
             return {row['channel_id'] for row in rows}
 
 async def get_survey_participants_report(survey_id: int):
-    async with get_db() as db:
+    async with await get_db() as db:
         query = """
             SELECT 
                 u.phone_number, 
